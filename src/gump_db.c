@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include "locks.h"
 #include "gump_db.h"
 
 GumpDB gmp_init_DB(char * file_name, int size_of_data) {
@@ -22,6 +23,32 @@ bool gmp_connect(GumpDB db) {
 
 bool gmp_disconnect(GumpDB db) {
   return fclose(db->file) == 0;
+}
+
+/*
+ * Sets a shared lock on the DB for reading.
+ * If a conflicting lock is held on the DB, it waits for that lock
+ * to be released.
+ *
+ * Since we set a lock for the whole file, Position parameter
+ * is a dummy for now.
+ */
+
+bool _gmp_set_shared_lock(GumpDB db, int position) {
+  return set_lock(fileno(db->file), F_SETLKW, F_RDLCK, 0, SEEK_SET, 0);
+}
+
+/*
+ * Sets an exclusive lock on the DB for writing.
+ * If a conflicting lock is held on the DB, it waits for that lock
+ * to be released.
+ *
+ * Since we set a lock for the whole file, Position parameter
+ * is a dummy for now.
+ */
+
+bool _gmp_set_exclusive_lock(GumpDB db, int position) {
+  return set_lock(fileno(db->file), F_SETLKW, F_WRLCK, 0, SEEK_SET, 0);
 }
 
 /*
@@ -88,6 +115,7 @@ int _gmp_store(GumpDB db, void * r) {
 int gmp_store(GumpDB db, void * r) {
   if (!gmp_connect(db)) { return -1; }
 
+  _gmp_set_exclusive_lock(db, -1);
   int result = _gmp_store(db, r);
 
   gmp_disconnect(db);
@@ -113,9 +141,10 @@ bool _gmp_retrieve(GumpDB db, int position, void * r) {
 bool gmp_retrieve(GumpDB db, int id, void * r) {
   if (!gmp_connect(db)) { return false; }
 
+  _gmp_set_shared_lock(db, id);
+
   bool result = _gmp_retrieve(db, id, r);
 
   gmp_disconnect(db);
   return result;
 }
-
