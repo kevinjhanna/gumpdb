@@ -116,10 +116,48 @@ static char * test_retrieve() {
   return 0;
 }
 
+static char * test_delete() {
+  create_file("people_test");
+
+  /* Initialize DB */
+  GumpDB db = gmp_init_DB("people_test", sizeof(person));
+
+  person john;
+  strcpy(john.first_name, "John");
+
+  gmp_store(db, &john);
+
+  /* Let's make sure we can fetch it id */
+  person retrieved;
+  bool result = gmp_retrieve(db, 0, &retrieved);
+  mu_assert("retrieve result", result);
+  mu_assert("first person name", str_eql(retrieved.first_name, "John"));
+
+  /* Now we delete the record in the DB */
+  result = gmp_delete(db, 0);
+  mu_assert("delete record with id = 0", result);
+
+  /* We shouldn't be able to retrieve the result now */
+  person not_retrieved;
+  result = gmp_retrieve(db, 0, &not_retrieved);
+  mu_assert("don't retrieve result", !result);
+
+  /* We shouldn't be able to delete a deleted record */
+  result = gmp_delete(db, 0);
+  mu_assert("don't delete record with id = 0", !result);
+
+  /* Neither a non existent record */
+  result = gmp_delete(db, 1);
+  mu_assert("don't delete record with id = 1", !result);
+
+  return 0;
+}
+
 static char * all_tests() {
    mu_run_test(test_init_db);
    mu_run_test(test_store);
    mu_run_test(test_retrieve);
+   mu_run_test(test_delete);
    return 0;
 }
 

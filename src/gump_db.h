@@ -43,4 +43,16 @@
    */
   bool gmp_retrieve(GumpDB db, int position, void * r);
 
+  /*
+   * Deletes the record with given id.
+   * Returns true if it successfully deleted the record.
+   * Returns false if there was nothing to delete, or if it
+   * couldn't delete the record.
+   *
+   * TODO: Should put tell with errno, if the DB was corrupted
+   * by not being able to set the ctrl char representing a
+   * deleted the record.
+   */
+  bool gmp_delete(GumpDB db, int position);
+
 #endif

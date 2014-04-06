@@ -148,3 +148,40 @@ bool gmp_retrieve(GumpDB db, int id, void * r) {
   gmp_disconnect(db);
   return result;
 }
+
+bool _gmp_delete(GumpDB db, int position) {
+  fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+
+  char ctrl_char;
+  int result = fread(&ctrl_char, 1, 1, db->file);
+
+  if (result != 1 || ctrl_char == SPOT_EMPTY) {
+    /* Make sure we can read the first byte
+     * and also that the byte does not represent the empty spot control char.
+     */
+    return false;
+  }
+
+  /* Go back one byte, since we have already advance the cursor */
+  fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+
+  ctrl_char = SPOT_EMPTY;
+  if (fwrite(&ctrl_char, 1, 1, db->file) != 1){
+    /* TODO: If we can't write the ctrl the byte we should set errno */
+    return false;
+  }
+
+  return true;
+}
+
+bool gmp_delete(GumpDB db, int id) {
+  if (!gmp_connect(db)) { return false; }
+
+  _gmp_set_shared_lock(db, id);
+
+  bool result = _gmp_delete(db, id);
+
+  gmp_disconnect(db);
+  return result;
+}
+
