@@ -183,7 +183,7 @@ bool _gmp_delete(GumpDB db, int position) {
 bool gmp_delete(GumpDB db, int id) {
   if (!_gmp_connect(db)) { return false; }
 
-  _gmp_set_shared_lock(db, id);
+  _gmp_set_exclusive_lock(db, id);
 
   bool result = _gmp_delete(db, id);
 
