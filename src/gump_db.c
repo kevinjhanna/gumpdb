@@ -16,12 +16,17 @@ GumpDB gmp_init_DB(char * file_name, int size_of_data) {
   return db;
 }
 
-bool gmp_connect(GumpDB db) {
+void _gmp_goto_id(GumpDB db, int id) {
+  fseek(db->file, id * (db->size_of_data + 1), SEEK_SET);
+}
+
+
+bool _gmp_connect(GumpDB db) {
   db->file = fopen(db->file_name, "r+b");
   return db->file != NULL;
 }
 
-bool gmp_disconnect(GumpDB db) {
+bool _gmp_disconnect(GumpDB db) {
   return fclose(db->file) == 0;
 }
 
@@ -79,12 +84,13 @@ int _gmp_store(GumpDB db, void * r) {
   char ctrl[1];
 
   while (!found) {
-    fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+    _gmp_goto_id(db, position);
+
     read_bytes = fread(&ctrl, 1, 1, db->file);
 
     if (ctrl[0] != SPOT_IN_USE || read_bytes == 0) {
       /* Go back one byte, since we have already advance the cursor */
-      fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+      _gmp_goto_id(db, position);
 
       found = true;
       ctrl[0] = SPOT_IN_USE;
@@ -96,7 +102,7 @@ int _gmp_store(GumpDB db, void * r) {
       if (fwrite(r, db->size_of_data, 1, db->file) == db->size_of_data) {
         /* If we can't write the data let's try to mark the spot as empty */
 
-        fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+        _gmp_goto_id(db, position);
         ctrl[0] = SPOT_EMPTY;
 
         /* And if we can't mark the spot as empty,
@@ -113,17 +119,17 @@ int _gmp_store(GumpDB db, void * r) {
 }
 
 int gmp_store(GumpDB db, void * r) {
-  if (!gmp_connect(db)) { return -1; }
+  if (!_gmp_connect(db)) { return -1; }
 
   _gmp_set_exclusive_lock(db, -1);
   int result = _gmp_store(db, r);
 
-  gmp_disconnect(db);
+  _gmp_disconnect(db);
   return result;
 }
 
 bool _gmp_retrieve(GumpDB db, int position, void * r) {
-  fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+  _gmp_goto_id(db, position);
 
   char ctrl_char;
   int result = fread(&ctrl_char, 1, 1, db->file);
@@ -139,18 +145,18 @@ bool _gmp_retrieve(GumpDB db, int position, void * r) {
 }
 
 bool gmp_retrieve(GumpDB db, int id, void * r) {
-  if (!gmp_connect(db)) { return false; }
+  if (!_gmp_connect(db)) { return false; }
 
   _gmp_set_shared_lock(db, id);
 
   bool result = _gmp_retrieve(db, id, r);
 
-  gmp_disconnect(db);
+  _gmp_disconnect(db);
   return result;
 }
 
 bool _gmp_delete(GumpDB db, int position) {
-  fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+  _gmp_goto_id(db, position);
 
   char ctrl_char;
   int result = fread(&ctrl_char, 1, 1, db->file);
@@ -163,7 +169,7 @@ bool _gmp_delete(GumpDB db, int position) {
   }
 
   /* Go back one byte, since we have already advance the cursor */
-  fseek(db->file, position * (db->size_of_data + 1), SEEK_SET);
+  _gmp_goto_id(db, position);
 
   ctrl_char = SPOT_EMPTY;
   if (fwrite(&ctrl_char, 1, 1, db->file) != 1){
@@ -175,13 +181,13 @@ bool _gmp_delete(GumpDB db, int position) {
 }
 
 bool gmp_delete(GumpDB db, int id) {
-  if (!gmp_connect(db)) { return false; }
+  if (!_gmp_connect(db)) { return false; }
 
   _gmp_set_shared_lock(db, id);
 
   bool result = _gmp_delete(db, id);
 
-  gmp_disconnect(db);
+  _gmp_disconnect(db);
   return result;
 }
 
