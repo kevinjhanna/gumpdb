@@ -55,4 +55,13 @@
    */
   bool gmp_delete(GumpDB db, int position);
 
+  /*
+   * Returns an array with all active records in the D
+   * And the retrieved count
+   *
+   * Important: record id does not always
+   * match index of the returned array.
+   */
+  bool gmp_list(GumpDB db, void * rs, int * count);
+
 #endif

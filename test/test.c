@@ -153,11 +153,80 @@ static char * test_delete() {
   return 0;
 }
 
+static char * test_list() {
+  create_file("people_test");
+
+  /* Initialize DB */
+  GumpDB db = gmp_init_DB("people_test", sizeof(person));
+
+  /* Let's create three different records and store them in our DB*/
+  person john;
+  strcpy(john.first_name, "John");
+  strcpy(john.last_name, "Doe");
+  john.age = 39;
+
+  person jane;
+  strcpy(jane.first_name, "Jane");
+  strcpy(jane.last_name, "Black");
+  jane.age = 41;
+
+  person paul;
+  strcpy(paul.first_name, "Paul");
+  strcpy(paul.last_name, "McGregor");
+  paul.age = 40;
+
+  gmp_store(db, &john);
+  gmp_store(db, &jane);
+  gmp_store(db, &paul);
+
+  person ** people;
+  int count;
+  bool result = gmp_list(db, &people, &count);
+  mu_assert("retrieve result", result);
+  mu_assert("count == 3", count == 3);
+  mu_assert("first person name", str_eql(people[0]->first_name, "John"));
+  mu_assert("first person last name", str_eql(people[0]->last_name, "Doe"));
+  mu_assert("first person age", people[0]->age == 39);
+
+  // /* Skip to the last record (third) */
+  mu_assert("last person name", str_eql(people[2]->first_name, "Paul"));
+  mu_assert("last person last name", str_eql(people[2]->last_name, "McGregor"));
+  mu_assert("last person age", people[2]->age == 40);
+
+  // /* And back to the second record */
+  mu_assert("second person name", str_eql(people[1]->first_name, "Jane"));
+  mu_assert("second person last name", str_eql(people[1]->last_name, "Black"));
+  mu_assert("second person age", people[1]->age == 41);
+
+  /*
+   * So far, so good. But what happens when we delete a record?
+   */
+
+  result = gmp_delete(db, 1);
+  mu_assert("delete record with id = 1", result);
+
+  result = gmp_list(db, &people, &count);
+  mu_assert("retrieve result", result);
+  mu_assert("count == 2", count == 2);
+
+  mu_assert("first person name", str_eql(people[0]->first_name, "John"));
+  mu_assert("first person last name", str_eql(people[0]->last_name, "Doe"));
+  mu_assert("first person age", people[0]->age == 39);
+
+  /* Now the last record has id = 1 */
+  mu_assert("last person name", str_eql(people[1]->first_name, "Paul"));
+  mu_assert("last person last name", str_eql(people[1]->last_name, "McGregor"));
+  mu_assert("last person age", people[1]->age == 40);
+
+  return 0;
+}
+
 static char * all_tests() {
    mu_run_test(test_init_db);
    mu_run_test(test_store);
    mu_run_test(test_retrieve);
    mu_run_test(test_delete);
+   mu_run_test(test_list);
    return 0;
 }
 

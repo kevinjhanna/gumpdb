@@ -16,9 +16,9 @@ With that ID you can then look up the values of the record.
 * Insert a record - **O(n)**
 * Retrieves a record by id (doesn't take it out) - **O(1)**
 * Delete a record - **O(1)**
+* List records - **O(n)**
 
 ### Coming soon
-* List records - **O(n)**
 * Modify a record - **O(1)**
 
 ## Locks

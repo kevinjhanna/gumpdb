@@ -20,7 +20,6 @@ void _gmp_goto_id(GumpDB db, int id) {
   fseek(db->file, id * (db->size_of_data + 1), SEEK_SET);
 }
 
-
 bool _gmp_connect(GumpDB db) {
   db->file = fopen(db->file_name, "r+b");
   return db->file != NULL;
@@ -191,3 +190,61 @@ bool gmp_delete(GumpDB db, int id) {
   return result;
 }
 
+bool _gmp_list(GumpDB db, void ** rs, int * count) {
+  fseek(db->file, 0, SEEK_END);
+  int file_size = ftell(db->file);
+  fseek(db->file, 0, SEEK_SET);
+
+  int positions = file_size / (db->size_of_data + 1);
+
+  void **list;
+  /*
+   * We may be asking for more memory than we actually need.
+   * That's because positions >= count
+   */
+  list = malloc(positions * sizeof(*list));
+
+  char ctrl_char;
+  int result;
+  *count = 0;
+
+  void * throw_away = malloc(db->size_of_data);
+
+  for (int i = 0; i < positions; i++)
+  {
+      if(fread(&ctrl_char, 1, 1, db->file) != 1) {
+       /* We couldn't read from the DB. TODO: Set errno.  */
+        return false;
+      }
+
+      if (ctrl_char == SPOT_IN_USE) {
+        list[*count] = malloc(db->size_of_data);
+
+        if (fread(list[*count], db->size_of_data, 1, db->file) != 1) {
+         /* We couldn't read from the DB. TODO: Set errno.  */
+          return false;
+        }
+        (*count)++;
+      } else {
+        /* Just to move the cursor */
+        fread(throw_away, db->size_of_data, 1, db->file);
+      }
+  }
+
+  free(throw_away);
+
+  *rs = list;
+
+  return true;
+}
+
+bool gmp_list(GumpDB db, void * rs, int * count) {
+  if (!_gmp_connect(db)) { return false; }
+
+  _gmp_set_shared_lock(db, -1);
+
+  bool result = _gmp_list(db, rs, count);
+
+  _gmp_disconnect(db);
+  return result;
+}
