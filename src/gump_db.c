@@ -80,20 +80,20 @@ int _gmp_store(GumpDB db, void * r) {
   int position = 0;
   int read_bytes;
   bool found = false;
-  char ctrl[1];
+  char ctrl_char;
 
   while (!found) {
     _gmp_goto_id(db, position);
 
-    read_bytes = fread(&ctrl, 1, 1, db->file);
+    read_bytes = fread(&ctrl_char, 1, 1, db->file);
 
-    if (ctrl[0] != SPOT_IN_USE || read_bytes == 0) {
+    if (ctrl_char != SPOT_IN_USE || read_bytes == 0) {
       /* Go back one byte, since we have already advance the cursor */
       _gmp_goto_id(db, position);
 
       found = true;
-      ctrl[0] = SPOT_IN_USE;
-      if (fwrite(&ctrl, 1, 1, db->file) != 1){
+      ctrl_char = SPOT_IN_USE;
+      if (fwrite(&ctrl_char, 1, 1, db->file) != 1){
         /* If we can't write ctrl the byte, we won't store the record. */
         return -1;
       }
@@ -102,11 +102,11 @@ int _gmp_store(GumpDB db, void * r) {
         /* If we can't write the data let's try to mark the spot as empty */
 
         _gmp_goto_id(db, position);
-        ctrl[0] = SPOT_EMPTY;
+        ctrl_char = SPOT_EMPTY;
 
         /* And if we can't mark the spot as empty,
          * we return that the DB has been corrupted */
-        return fwrite(&ctrl, 1, 1, db->file) == 1 ? -1 : -2;
+        return fwrite(&ctrl_char, 1, 1, db->file) == 1 ? -1 : -2;
       }
 
       return position;
