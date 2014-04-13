@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I. -std=c99
 DEPS = src/gump_db.h src/locks.h
 
 %.o: %.c $(DEPS)
