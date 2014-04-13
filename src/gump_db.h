@@ -55,13 +55,18 @@
    */
   bool gmp_delete(GumpDB db, int position);
 
+  typedef struct GumpDBRecord {
+    void * record;
+    int id;
+  } GumpDBRecord;
+
   /*
-   * Returns an array with all active records in the D
+   * Returns an array with all active records in the DB
    * And the retrieved count
    *
    * Important: record id does not always
    * match index of the returned array.
    */
-  bool gmp_list(GumpDB db, void * rs, int * count);
+  bool gmp_list(GumpDB db, GumpDBRecord *** rs, int * count);
 
 #endif

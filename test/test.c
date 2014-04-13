@@ -153,6 +153,16 @@ static char * test_delete() {
   return 0;
 }
 
+/*
+ * We define this macro to help us test the list operation.
+ * Feel free to define a similar macro in your project to
+ * forget about cumbersome type casting.
+ *
+ * Returns the attribute given its position in the record array.
+ * Notice it's not by id, but by array position.
+ */
+# define get(position, attr) ( ((person *)(list[position]->record))->attr )
+
 static char * test_list() {
   create_file("people_test");
 
@@ -179,44 +189,59 @@ static char * test_list() {
   gmp_store(db, &jane);
   gmp_store(db, &paul);
 
-  person ** people;
   int count;
-  bool result = gmp_list(db, &people, &count);
+  bool result;
+
+  GumpDBRecord ** list;
+
+  result = gmp_list(db, &list, &count);
   mu_assert("retrieve result", result);
   mu_assert("count == 3", count == 3);
-  mu_assert("first person name", str_eql(people[0]->first_name, "John"));
-  mu_assert("first person last name", str_eql(people[0]->last_name, "Doe"));
-  mu_assert("first person age", people[0]->age == 39);
 
-  // /* Skip to the last record (third) */
-  mu_assert("last person name", str_eql(people[2]->first_name, "Paul"));
-  mu_assert("last person last name", str_eql(people[2]->last_name, "McGregor"));
-  mu_assert("last person age", people[2]->age == 40);
+  /* This is how it would look like to fetch each an attribute */
+  mu_assert("first person name", str_eql(((person *)
+          (list[0]->record))->first_name, "John"));
 
-  // /* And back to the second record */
-  mu_assert("second person name", str_eql(people[1]->first_name, "Jane"));
-  mu_assert("second person last name", str_eql(people[1]->last_name, "Black"));
-  mu_assert("second person age", people[1]->age == 41);
+  /* Lucky to us,  we have defined the get(id, attr) macro */
+  mu_assert("first person last name", str_eql(get(0, last_name), "Doe"));
+  mu_assert("first person age", get(0, age) == 39);
 
-  /*
-   * So far, so good. But what happens when we delete a record?
-   */
+  mu_assert("first person id == 0", list[0]->id == 0);
 
+  /* Skip to the last record (third) */
+  mu_assert("last person name", str_eql(get(2, first_name), "Paul"));
+  mu_assert("last person last name", str_eql(get(2, last_name), "McGregor"));
+  mu_assert("last person age", get(2, age) == 40);
+
+  mu_assert("first person id == 2", list[2]->id == 2);
+
+  /* And back to the second record */
+  mu_assert("second person name", str_eql(get(1, first_name), "Jane"));
+  mu_assert("second person last name", str_eql(get(1, last_name), "Black"));
+  mu_assert("second person age", get(1, age) == 41);
+
+  mu_assert("first person id == 1", list[1]->id == 1);
+
+  /* So far, so good. But what happens when we delete a record?  */
   result = gmp_delete(db, 1);
   mu_assert("delete record with id = 1", result);
 
-  result = gmp_list(db, &people, &count);
+  result = gmp_list(db, &list, &count);
   mu_assert("retrieve result", result);
   mu_assert("count == 2", count == 2);
 
-  mu_assert("first person name", str_eql(people[0]->first_name, "John"));
-  mu_assert("first person last name", str_eql(people[0]->last_name, "Doe"));
-  mu_assert("first person age", people[0]->age == 39);
+  mu_assert("first person name", str_eql(get(0, first_name), "John"));
+  mu_assert("first person last name", str_eql(get(0, last_name), "Doe"));
+  mu_assert("first person age", get(0, age) == 39);
 
-  /* Now the last record has id = 1 */
-  mu_assert("last person name", str_eql(people[1]->first_name, "Paul"));
-  mu_assert("last person last name", str_eql(people[1]->last_name, "McGregor"));
-  mu_assert("last person age", people[1]->age == 40);
+  mu_assert("first person id == 0", list[0]->id == 0);
+
+  /* Now the last record, list[1],  has id = 2 */
+  mu_assert("first person id == 2", list[1]->id == 2);
+
+  mu_assert("last person name", str_eql(get(1, first_name), "Paul"));
+  mu_assert("last person last name", str_eql(get(1, last_name), "McGregor"));
+  mu_assert("last person age", get(1, age) == 40);
 
   return 0;
 }

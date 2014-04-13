@@ -190,19 +190,19 @@ bool gmp_delete(GumpDB db, int id) {
   return result;
 }
 
-bool _gmp_list(GumpDB db, void ** rs, int * count) {
+bool _gmp_list(GumpDB db, GumpDBRecord *** rs, int * count) {
   fseek(db->file, 0, SEEK_END);
   int file_size = ftell(db->file);
   fseek(db->file, 0, SEEK_SET);
 
   int positions = file_size / (db->size_of_data + 1);
 
-  void **list;
+  GumpDBRecord ** list;
   /*
    * We may be asking for more memory than we actually need.
    * That's because positions >= count
    */
-  list = malloc(positions * sizeof(*list));
+  list = malloc(positions * sizeof(GumpDBRecord *));
 
   char ctrl_char;
   int result;
@@ -218,9 +218,11 @@ bool _gmp_list(GumpDB db, void ** rs, int * count) {
       }
 
       if (ctrl_char == SPOT_IN_USE) {
-        list[*count] = malloc(db->size_of_data);
+        list[*count] = malloc(sizeof(GumpDBRecord));
+        list[*count]->record = malloc(db->size_of_data);
+        list[*count]->id = i;
 
-        if (fread(list[*count], db->size_of_data, 1, db->file) != 1) {
+        if (fread(list[*count]->record , db->size_of_data, 1, db->file) != 1) {
          /* We couldn't read from the DB. TODO: Set errno.  */
           return false;
         }
@@ -238,7 +240,7 @@ bool _gmp_list(GumpDB db, void ** rs, int * count) {
   return true;
 }
 
-bool gmp_list(GumpDB db, void * rs, int * count) {
+bool gmp_list(GumpDB db, GumpDBRecord *** rs, int * count) {
   if (!_gmp_connect(db)) { return false; }
 
   _gmp_set_shared_lock(db, -1);
