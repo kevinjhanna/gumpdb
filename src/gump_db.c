@@ -78,16 +78,17 @@ bool _gmp_set_exclusive_lock(GumpDB db, int position) {
 
 int _gmp_store(GumpDB db, void * r) {
   int position = 0;
-  int read_bytes;
+  int read_count;
   bool found = false;
   char ctrl_char;
 
   while (!found) {
     _gmp_goto_id(db, position);
 
-    read_bytes = fread(&ctrl_char, 1, 1, db->file);
+    read_count = fread(&ctrl_char, 1, 1, db->file);
 
-    if (ctrl_char != SPOT_IN_USE || read_bytes == 0) {
+    /* Also check read == 0 because it may be an unused spot */
+    if (ctrl_char != SPOT_IN_USE || read_count == 0) {
       /* Go back one byte, since we have already advance the cursor */
       _gmp_goto_id(db, position);
 
@@ -98,7 +99,7 @@ int _gmp_store(GumpDB db, void * r) {
         return -1;
       }
 
-      if (fwrite(r, db->size_of_data, 1, db->file) == db->size_of_data) {
+      if (fwrite(r, db->size_of_data, 1, db->file) == 0) {
         /* If we can't write the data let's try to mark the spot as empty */
 
         _gmp_goto_id(db, position);
