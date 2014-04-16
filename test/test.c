@@ -153,6 +153,38 @@ static char * test_delete() {
   return 0;
 }
 
+static char * test_stores_in_empty_spots() {
+  create_file("people_test");
+
+  /* Initialize DB */
+  GumpDB db = gmp_init_DB("people_test", sizeof(person));
+
+  person anyone;
+  anyone.age = 10;
+  mu_assert("id == 0", gmp_store(db, &anyone) == 0);
+
+  anyone.age = 20;
+  mu_assert("id == 1", gmp_store(db, &anyone) == 1);
+
+  anyone.age = 30;
+  mu_assert("id == 2", gmp_store(db, &anyone) == 2);
+
+  mu_assert("delete spot in the middle", gmp_delete(db, 1));
+
+ /* Finally, let's add another record to see that we get an id
+  * that previously existed, but not anymore.
+  */
+
+  anyone.age = 100;
+  mu_assert("previously deleted record", gmp_store(db, &anyone) == 1);
+
+  anyone.age = 0;
+  mu_assert("retrieve result", gmp_retrieve(db, 1, &anyone));
+  mu_assert("record attribute", anyone.age ==  100);
+
+  return 0;
+}
+
 /*
  * We define this macro to help us test the list operation.
  * Feel free to define a similar macro in your project to
@@ -252,6 +284,7 @@ static char * all_tests() {
    mu_run_test(test_retrieve);
    mu_run_test(test_delete);
    mu_run_test(test_list);
+   mu_run_test(test_stores_in_empty_spots);
    return 0;
 }
 
