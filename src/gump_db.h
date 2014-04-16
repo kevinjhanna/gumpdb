@@ -21,14 +21,15 @@
   /*
    * Stores a record in the first available position.
    * Returns the position (ID) of where it is stored
-   * inside the file.
+   * inside the file with int pointer.
+   * id parameter can be null if there is no need to know the id
    *
-   * Returns -1 if it fails to do so.
+   * Returns true if it was able to do so, or false instead.
    *
    * TODO: Set errno if it fails and the DB has been corrupted.
    *
    */
-  int gmp_store(GumpDB db, void * r);
+  bool gmp_store(GumpDB db, int * id,  void * r);
 
   /*
    * Retrieves a record for the given position (ID) of the DB.

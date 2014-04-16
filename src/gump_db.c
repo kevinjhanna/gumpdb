@@ -109,7 +109,7 @@ bool _gmp_set(GumpDB db, int id, void * r) {
  *  the boxes.
  */
 
-int _gmp_store(GumpDB db, void * r) {
+bool _gmp_store(GumpDB db, int * id, void * r) {
   int position = 0;
   int read_count;
   bool found = false;
@@ -124,23 +124,21 @@ int _gmp_store(GumpDB db, void * r) {
     if (ctrl_char != SPOT_IN_USE || read_count == 0) {
       found = true;
 
-      if (_gmp_set(db, position, r)) {
-        return position;
-      } else {
-        return -1;
-      }
+      if (id != NULL) { *id = position; }
+
+      return _gmp_set(db, position, r);
     }
 
     position++;
   }
-  return -1;
+  return false;
 }
 
-int gmp_store(GumpDB db, void * r) {
+bool gmp_store(GumpDB db, int * id,  void * r) {
   if (!_gmp_connect(db)) { return -1; }
 
   _gmp_set_exclusive_lock(db, -1);
-  int result = _gmp_store(db, r);
+  bool result = _gmp_store(db, id, r);
 
   _gmp_disconnect(db);
   return result;

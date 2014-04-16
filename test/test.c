@@ -50,16 +50,20 @@ static char * test_store() {
   person_to_store.age = 39;
 
   /* Now we store it in our DB */
-  int result = gmp_store(db, &person_to_store);
-  mu_assert("should store it in file's first position", result == 0);
+  int id;
+  bool result = gmp_store(db, &id, &person_to_store);
+  mu_assert("should be able to store", result);
+  mu_assert("should store it in file's first position", id == 0);
 
   /* Ok, let's store the same data in next available position */
-  result = gmp_store(db, &person_to_store);
-  mu_assert("should store it in file's second position", result == 1);
+  result = gmp_store(db, &id, &person_to_store);
+  mu_assert("should be able to store", result);
+  mu_assert("should store it in file's second position", id == 1);
 
   /* And the last one */
-  result = gmp_store(db, &person_to_store);
-  mu_assert("should store it in file's third position", result == 2);
+  result = gmp_store(db, &id, &person_to_store);
+  mu_assert("should be able to store", result);
+  mu_assert("should store it in file's third position", id == 2);
 
   return 0;
 }
@@ -86,9 +90,9 @@ static char * test_retrieve() {
   strcpy(paul.last_name, "McGregor");
   paul.age = 40;
 
-  gmp_store(db, &john); /* id = 0 */
-  gmp_store(db, &jane); /* id = 1 */
-  gmp_store(db, &paul); /* id = 2 */
+  gmp_store(db, NULL,  &john); /* id = 0 */
+  gmp_store(db, NULL, &jane); /* id = 1 */
+  gmp_store(db, NULL, &paul); /* id = 2 */
 
   /* Now let's fetch them by id */
 
@@ -125,7 +129,7 @@ static char * test_delete() {
   person john;
   strcpy(john.first_name, "John");
 
-  gmp_store(db, &john);
+  gmp_store(db, NULL, &john);
 
   /* Let's make sure we can fetch it id */
   person retrieved;
@@ -160,14 +164,20 @@ static char * test_stores_in_empty_spots() {
   GumpDB db = gmp_init_DB("people_test", sizeof(person));
 
   person anyone;
+  int id = -1;
+  bool result;
+
   anyone.age = 10;
-  mu_assert("id == 0", gmp_store(db, &anyone) == 0);
+  mu_assert("store", gmp_store(db, &id, &anyone));
+  mu_assert("id == 0",  id == 0);
 
   anyone.age = 20;
-  mu_assert("id == 1", gmp_store(db, &anyone) == 1);
+  mu_assert("store", gmp_store(db, &id, &anyone));
+  mu_assert("id == 1", id == 1);
 
   anyone.age = 30;
-  mu_assert("id == 2", gmp_store(db, &anyone) == 2);
+  mu_assert("store", gmp_store(db, &id, &anyone));
+  mu_assert("id == 2", id == 2);
 
   mu_assert("delete spot in the middle", gmp_delete(db, 1));
 
@@ -176,7 +186,8 @@ static char * test_stores_in_empty_spots() {
   */
 
   anyone.age = 100;
-  mu_assert("previously deleted record", gmp_store(db, &anyone) == 1);
+  mu_assert("store", gmp_store(db, &id, &anyone));
+  mu_assert("use previously deleted record id", id == 1);
 
   anyone.age = 0;
   mu_assert("retrieve result", gmp_retrieve(db, 1, &anyone));
@@ -217,9 +228,9 @@ static char * test_list() {
   strcpy(paul.last_name, "McGregor");
   paul.age = 40;
 
-  gmp_store(db, &john);
-  gmp_store(db, &jane);
-  gmp_store(db, &paul);
+  gmp_store(db, NULL, &john);
+  gmp_store(db, NULL, &jane);
+  gmp_store(db, NULL, &paul);
 
   int count;
   bool result;
