@@ -58,33 +58,26 @@ bool _gmp_set_exclusive_lock(GumpDB db, int position) {
 /*
  * Sets a record with the given id.
  * This operation is only used internally.
+ * It does not check if there was an existing record with that id.
  *
  * Use gmp_store to store records in the DB.
  */
 
 bool _gmp_set(GumpDB db, int id, void * r) {
-  _gmp_goto_id(db, position);
+  _gmp_goto_id(db, id);
 
-  read_count = fread(&ctrl_char, 1, 1, db->file);
-
-  /* check read == 0 because it may be an unused spot */
-  if (ctrl_char != SPOT_EMPTY || read_count == 0) { return false; }
-
-  /* Go back one byte, since we have already advance the cursor */
-  _gmp_goto_id(db, position);
-
-  ctrl_char = SPOT_IN_USE;
+  char ctrl_char = SPOT_IN_USE;
   /* If we can't write ctrl the byte, we won't store the record. */
-  if (fwrite(&ctrl_char, 1, 1, db->file) != 1) { return false; }
+  if (fwrite(&ctrl_char, 1, 1, db->file) == 0) { return false; }
 
   /* Now it's time to save the record */
   if (fwrite(r, db->size_of_data, 1, db->file) == 0) {
     /* If we can't write the data let's try to mark the spot as empty */
 
-    _gmp_goto_id(db, position);
+    _gmp_goto_id(db, id); /* Go back to ctrl byte position */
     ctrl_char = SPOT_EMPTY;
 
-    if (fwrite(&ctrl_char, 1, 1, db->file) != 1) { }
+    if (fwrite(&ctrl_char, 1, 1, db->file) != 1) {
       /* TODO: If we can't mark the spot as empty,
        * we should set errno that the DB has been corrupted */
     }
@@ -129,28 +122,13 @@ int _gmp_store(GumpDB db, void * r) {
 
     /* Also check read == 0 because it may be an unused spot */
     if (ctrl_char != SPOT_IN_USE || read_count == 0) {
-      /* Go back one byte, since we have already advance the cursor */
-      _gmp_goto_id(db, position);
-
       found = true;
-      ctrl_char = SPOT_IN_USE;
-      if (fwrite(&ctrl_char, 1, 1, db->file) != 1){
-        /* If we can't write ctrl the byte, we won't store the record. */
+
+      if (_gmp_set(db, position, r)) {
+        return position;
+      } else {
         return -1;
       }
-
-      if (fwrite(r, db->size_of_data, 1, db->file) == 0) {
-        /* If we can't write the data let's try to mark the spot as empty */
-
-        _gmp_goto_id(db, position);
-        ctrl_char = SPOT_EMPTY;
-
-        /* And if we can't mark the spot as empty,
-         * we return that the DB has been corrupted */
-        return fwrite(&ctrl_char, 1, 1, db->file) == 1 ? -1 : -2;
-      }
-
-      return position;
     }
 
     position++;
