@@ -70,4 +70,10 @@
    */
   bool gmp_list(GumpDB db, GumpDBRecord *** rs, int * count);
 
+  /*
+   * Applies a modifier function to the record with given id
+   *
+   * Returns true if it was able to do so, or false otherwise.
+   */
+  bool gmp_modify(GumpDB db, int id, bool (*modifier)(void * r));
 #endif

@@ -289,6 +289,38 @@ static char * test_list() {
   return 0;
 }
 
+bool modifyPerson(void * r) {
+  person * a_person = r;
+  a_person->age = 40;
+  a_person->first_name[0] = 'j';
+  return true;
+}
+
+static char * test_modify() {
+  create_file("people_test");
+
+  /* Initialize DB */
+  GumpDB db = gmp_init_DB("people_test", sizeof(person));
+
+  person john;
+  strcpy(john.first_name, "John");
+  strcpy(john.last_name, "Doe");
+  john.age = 20;
+
+  int id;
+  gmp_store(db, &id, &john);
+  gmp_modify(db, id, &modifyPerson);
+
+  person retrieved;
+  bool result = gmp_retrieve(db, id, &retrieved);
+  mu_assert("retrieve result", result);
+  mu_assert("first person name", str_eql(retrieved.first_name, "john"));
+  mu_assert("first person last name", str_eql(retrieved.last_name, "Doe"));
+  mu_assert("first person age", retrieved.age == 40);
+
+  return 0;
+}
+
 static char * all_tests() {
    mu_run_test(test_init_db);
    mu_run_test(test_store);
@@ -296,6 +328,7 @@ static char * all_tests() {
    mu_run_test(test_delete);
    mu_run_test(test_list);
    mu_run_test(test_stores_in_empty_spots);
+   mu_run_test(test_modify);
    return 0;
 }
 

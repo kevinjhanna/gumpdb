@@ -268,30 +268,33 @@ bool gmp_list(GumpDB db, GumpDBRecord *** rs, int * count) {
   return result;
 }
 
-// bool _gmp_modify(GumpDB db, int id, bool (*modifier)(void *)) {
-//   void * record = malloc(db->size_of_data);
-//
-//   if (record == NULL) { return false; }
-//
-//   bool result = _gmp_retrieve(db, id, record);
-//
-//   if (!result) { free(record); return false; }
-//
-//   result = *modifer(record);
-//
-//   if (!result) { free(record); return false; }
-//
-//
-//   return true;
-// }
-//
-// bool gmp_modify(GumpDB db, int id, bool (*modifier)(void *)) {
-//   if (!_gmp_connect(db)) { return false; }
-//
-//   _gmp_set_exclusive_lock(db, id);
-//
-//   bool result = _gmp_modify(db, id, modifier);
-//
-//   _gmp_disconnect(db);
-//   return result;
-// }
+bool _gmp_modify(GumpDB db, int id, bool (*modifier)(void * r)) {
+  void * record = malloc(db->size_of_data);
+
+  if (record == NULL) { return false; }
+
+  bool result = _gmp_retrieve(db, id, record);
+
+  if (!result) { free(record); return false; }
+
+  result = modifier(record);
+
+  if (!result) { free(record); return false; }
+
+  result = _gmp_set(db, id, record);
+
+  if (!result) { free(record); }
+
+  return result;
+}
+
+bool gmp_modify(GumpDB db, int id, bool (*modifier)(void * r)) {
+  if (!_gmp_connect(db)) { return false; }
+
+  _gmp_set_exclusive_lock(db, id);
+
+  bool result = _gmp_modify(db, id, modifier);
+
+  _gmp_disconnect(db);
+  return result;
+}
