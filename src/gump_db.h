@@ -25,7 +25,7 @@
    *
    * Returns -1 if it fails to do so.
    *
-   * Returns -2 if it fails and the DB has been corrupted.
+   * TODO: Set errno if it fails and the DB has been corrupted.
    *
    */
   int gmp_store(GumpDB db, void * r);

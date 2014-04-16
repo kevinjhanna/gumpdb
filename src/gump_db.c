@@ -56,6 +56,46 @@ bool _gmp_set_exclusive_lock(GumpDB db, int position) {
 }
 
 /*
+ * Sets a record with the given id.
+ * This operation is only used internally.
+ *
+ * Use gmp_store to store records in the DB.
+ */
+
+bool _gmp_set(GumpDB db, int id, void * r) {
+  _gmp_goto_id(db, position);
+
+  read_count = fread(&ctrl_char, 1, 1, db->file);
+
+  /* check read == 0 because it may be an unused spot */
+  if (ctrl_char != SPOT_EMPTY || read_count == 0) { return false; }
+
+  /* Go back one byte, since we have already advance the cursor */
+  _gmp_goto_id(db, position);
+
+  ctrl_char = SPOT_IN_USE;
+  /* If we can't write ctrl the byte, we won't store the record. */
+  if (fwrite(&ctrl_char, 1, 1, db->file) != 1) { return false; }
+
+  /* Now it's time to save the record */
+  if (fwrite(r, db->size_of_data, 1, db->file) == 0) {
+    /* If we can't write the data let's try to mark the spot as empty */
+
+    _gmp_goto_id(db, position);
+    ctrl_char = SPOT_EMPTY;
+
+    if (fwrite(&ctrl_char, 1, 1, db->file) != 1) { }
+      /* TODO: If we can't mark the spot as empty,
+       * we should set errno that the DB has been corrupted */
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
+/*
  *  Think about our binary file that holds our DB as a garage
  *  with marked spots on the floor to leave fixed-size 'boxes'.
  *  And this spots are numbered from 0, upto the last box.
@@ -251,3 +291,31 @@ bool gmp_list(GumpDB db, GumpDBRecord *** rs, int * count) {
   _gmp_disconnect(db);
   return result;
 }
+
+// bool _gmp_modify(GumpDB db, int id, bool (*modifier)(void *)) {
+//   void * record = malloc(db->size_of_data);
+//
+//   if (record == NULL) { return false; }
+//
+//   bool result = _gmp_retrieve(db, id, record);
+//
+//   if (!result) { free(record); return false; }
+//
+//   result = *modifer(record);
+//
+//   if (!result) { free(record); return false; }
+//
+//
+//   return true;
+// }
+//
+// bool gmp_modify(GumpDB db, int id, bool (*modifier)(void *)) {
+//   if (!_gmp_connect(db)) { return false; }
+//
+//   _gmp_set_exclusive_lock(db, id);
+//
+//   bool result = _gmp_modify(db, id, modifier);
+//
+//   _gmp_disconnect(db);
+//   return result;
+// }
