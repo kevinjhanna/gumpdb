@@ -1,6 +1,8 @@
 #ifndef GUMP_DB_H
   #define GUMP_DB_H
 
+  #include <stdio.h>
+
   #define SPOT_EMPTY 'o'
   #define SPOT_IN_USE 'x'
 
